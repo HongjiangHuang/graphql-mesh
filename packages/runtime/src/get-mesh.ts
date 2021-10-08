@@ -58,10 +58,29 @@ export interface MeshInstance {
    * It will be removed in the next version
    */
   contextBuilder: (ctx: any) => Promise<any>;
+  addCustomContextBuilder: (builder: CustomContextBuilders) => void;
 }
+
+type CustomContextBuilders = () => Promise<{
+  [key: string]: any;
+}>;
 
 export async function getMesh(options: GetMeshOptions): Promise<MeshInstance> {
   const rawSources: RawSourceOutput[] = [];
+  const customContextBuilders: CustomContextBuilders[] = [];
+
+  const addCustomContextBuilder = (contextBuilder: CustomContextBuilders) => {
+    customContextBuilders.push(contextBuilder);
+  };
+  const mergeContext = async (context: Record<string, any>) => {
+    const allCustomContexts = await Promise.all(
+      customContextBuilders.map(builder => {
+        return builder();
+      })
+    );
+    return Object.assign(context, ...allCustomContexts);
+  };
+
   const { pubsub, cache, logger = new DefaultLogger('🕸️') } = options;
 
   const getMeshLogger = logger.child('GetMesh');
@@ -294,6 +313,7 @@ export async function getMesh(options: GetMeshOptions): Promise<MeshInstance> {
     }
     const operationLogger = executionLogger.child(operationName || 'UnnamedOperation');
 
+    contextValue = await mergeContext(contextValue);
     const executionParams = {
       document: documentNode,
       contextValue,
@@ -340,7 +360,7 @@ ${inspect({
       operationName = operationAst.name?.value;
     }
     const operationLogger = subscriberLogger.child(operationName || 'UnnamedOperation');
-
+    contextValue = await mergeContext(contextValue);
     const executionParams = {
       document: documentNode,
       contextValue,
@@ -424,6 +444,7 @@ ${inspect({
     destroy: () => pubsub.publish('destroy', undefined),
     liveQueryStore,
     contextBuilder: async ctx => ctx || {},
+    addCustomContextBuilder,
   };
 }
 
