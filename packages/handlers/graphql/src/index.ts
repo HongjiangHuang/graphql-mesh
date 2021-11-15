@@ -144,7 +144,7 @@ export default class GraphQLHandler implements MeshHandler {
 }
 
 // 兼容the graphql op没有 __typename
-function deleteWarp<T>(params: T) {
+function deleteWarp<T extends Record<string, any>>(params: T) {
   try {
     if (params.document.definitions[0].selectionSet.selections[0].name.value === '__typename') {
       delete params.document.definitions[0].selectionSet.selections[0];
