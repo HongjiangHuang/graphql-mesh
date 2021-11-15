@@ -95,6 +95,7 @@ export default class GraphQLHandler implements MeshHandler {
         ...this.config,
         subscriptionsProtocol: this.config.subscriptionsProtocol as SubscriptionProtocol,
         headers,
+        requestCredentials: 'omit',
       });
     };
     let schemaHeaders =
