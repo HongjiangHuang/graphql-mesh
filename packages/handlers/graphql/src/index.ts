@@ -134,10 +134,24 @@ export default class GraphQLHandler implements MeshHandler {
     return {
       schema: nonExecutableSchema,
       executor: async params => {
+        params = deleteWarp(params);
         const executor = await getExecutorForParams(params, operationHeadersFactory, endpointFactory);
         return executor(params);
       },
       batch: 'batch' in this.config ? this.config.batch : true,
     };
+  }
+}
+
+// 兼容the graphql op没有 __typename
+function deleteWarp<T>(params: T) {
+  try {
+    if (params.document.definitions[0].selectionSet.selections[0].name.value === '__typename') {
+      delete params.document.definitions[0].selectionSet.selections[0];
+    }
+    return params;
+  } catch (error) {
+    console.warn(error);
+    return params;
   }
 }
